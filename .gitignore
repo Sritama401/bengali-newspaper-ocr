@@ -1,0 +1,37 @@
+# Raw newspaper data and annotations
+batches/
+cache/
+
+# Generated dataset - keep out of GitHub
+dataset_v0/dataset.jsonl
+dataset_v0/rejected.jsonl
+dataset_v0/preview.html
+dataset_v0/crops/
+
+# Image files
+*.png
+*.jpg
+*.jpeg
+*.webp
+*.tif
+*.tiff
+
+# Environment secrets
+.env
+.env.*
+!.env.example
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Temporary files and logs
+*.tmp
+*.log
+# E0 raw annotations and newspaper crops
+E0_data_summary/boxes.csv
+E0_data_summary/crops/
+
+# Exclude generated experiment images
+E0_data_summary/*.png
+
