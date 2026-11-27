@@ -35,3 +35,17 @@ E0_data_summary/crops/
 # Exclude generated experiment images
 E0_data_summary/*.png
 
+
+# Raw annotations and generated Cycle 1 datasets
+data/raw/
+data/processed/
+dataset_v1/
+deliverables/
+
+# Python cache directories
+**/__pycache__/
+
+# Generated audit sample images
+audit_inspection/*.png
+audit_inspection/*.jpg
+audit_inspection/*.jpeg
