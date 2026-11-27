@@ -1,72 +1,46 @@
-# Bengali Historical Newspaper OCR Dataset
 
-A research project for preparing Bengali image–text pairs from annotated historical newspaper pages, evaluating OCR engines, and documenting dataset quality and limitations.
+# Bengali Historical Newspaper OCR
 
-> **Project status:** Cycle 1 paired-dataset preparation, Unicode NFC normalization, structural validation, and initial quality audits are complete. Final OCR model training and comprehensive transcription verification have not yet been completed.
+A research and dataset-preparation project focused on extracting Bengali text from historical newspaper images and preparing image–text pairs for Optical Character Recognition (OCR).
 
 ## 1. Project Overview
 
-Historical Bengali newspapers are valuable sources of linguistic, cultural, and historical information. Making their contents searchable and machine-readable requires reliable Optical Character Recognition (OCR).
+The objective of this project is to prepare Bengali newspaper data for OCR research and model training.
 
-This project focuses on preparing image–text training data from annotated Bengali newspaper pages.
+The work focuses on:
+- Inspecting annotated newspaper pages.
+- Comparing OCR engines.
+- Preparing paired image crops and Bengali transcriptions.
+- Applying Unicode NFC normalization.
+- Auditing transcription quality.
+- Validating dataset structure and documenting limitations.
 
-The central objective is to create records in which each newspaper-region image crop is paired with its corresponding Bengali transcription.
+**Important:** This project has completed its first dataset-preparation cycle. Final OCR model training has not yet been performed.
 
-Example JSONL record (illustrative only):
-
-```json
-{
-  "image": "crops/001.png",
-  "text": "আজ দেশের নানা স্থানে বৃষ্টি হইয়াছে।"
-}
-## 4. Research and Initial Data Inspection
+## 2. Research and Initial Data Inspection
 
 ### E0 — Initial Data Summary
 
-The initial data inspection examined 100 pages and reported 6,558 original prediction regions.
+The initial inspection examined 100 pages and reported 6,558 original prediction regions.
 
 | Measurement | Result |
 |---|---:|
 | Pages examined | 100 |
-| Original prediction regions | 6,558 |
-| Text-field regions, excluding Image | 6,481 |
+| Original regions | 6,558 |
+| Text-field regions (excluding Image) | 6,481 |
 | Empty text fields | 0 |
-| Placeholder text records | 402 |
-| Records containing real text | 6,079 |
-| Real-text records with Bengali share below 50% | 940 |
-| Real-text records with Bengali share below 80% | 3,204 |
+| Placeholder text | 402 |
+| Real-text regions | 6,079 |
+| Real-text regions with Bengali share below 50% | 940 |
+| Median text length | 74 characters |
 
-The original region labels were:
-
-| Label | Count |
-|---|---:|
-| BodyText | 4,314 |
-| Headline | 1,137 |
-| Subtitle | 980 |
-| Image | 77 |
-| Caption | 50 |
-
-The Bengali-share calculation uses Bengali letters, Bengali digits, or danda relative to the non-space characters in a text field.
-
-**Interpretation:** The initial data contained a substantial number of records with low Bengali-character share. This indicates that language-content filtering and manual quality inspection are important parts of dataset preparation.
-
-The 6,558 figure refers to the original prediction-region data described in the initial inspection. It should not be confused with the later final annotation-region count.
-
-Detailed report: `E0_data_summary/summary.md`
+The inspection identified issues involving placeholder labels, Bengali character share and text quality.
 
 ### E1 — OCR Engine Comparison
 
-A small comparison was conducted using 20 sample regions.
+The comparison used 20 samples. Google Lens output was used as the reference, but it was not fully verified by a Bengali reader.
 
-Google Lens output was used as the reference text. It was not fully verified by a Bengali reader, so the results measure agreement with that reference rather than guaranteed transcription accuracy.
-
-Character Error Rate (CER) was calculated as:
-
-`CER = character edit distance / reference text length`
-
-Whitespace was ignored. Lower CER indicates closer agreement with the reference.
-
-#### Overall results
+Character Error Rate (CER) measures character-level edits divided by reference length. Whitespace was ignored. Lower CER is better.
 
 | OCR source | Mean CER | Median CER |
 |---|---:|---:|
@@ -74,226 +48,258 @@ Whitespace was ignored. Lower CER indicates closer agreement with the reference.
 | Gemini | 0.113 | 0.065 |
 | Saved draft | 0.425 | 0.458 |
 
-#### Mean CER by region label
+Gemini performed best overall in this sample. However, agreement with Google Lens does not establish transcription correctness.
 
-| Label | EasyOCR | Gemini | Saved draft |
-|---|---:|---:|---:|
-| All samples | 0.457 | 0.113 | 0.425 |
-| BodyText | 0.742 | 0.175 | 0.756 |
-| Headline | 0.175 | 0.037 | 0.131 |
-| Subtitle | 0.170 | 0.065 | 0.058 |
+### E1b — Gemini Scale Test
 
-Gemini showed the lowest overall mean CER and the lowest mean CER for BodyText and Headline in this sample. The saved draft performed slightly better than Gemini on Subtitle.
-
-**Limitations:**
-- The evaluation used only 20 samples.
-- Google Lens was not independently verified as ground truth.
-- A lower CER against an unverified reference does not establish actual transcription correctness.
-- These results should not be generalized to the complete newspaper dataset.
-
-Detailed report: `E1_ocr_engines/summary.md`
-
-### E1b — Gemini Scale Feasibility Test
-
-A separate experiment investigated whether Gemini could reliably process a larger number of newspaper regions.
-
-The test included 50 BodyText boxes:
-- 25 retained boxes.
-- 25 rejected boxes.
-- Random seed: 42.
-
-No independently verified reference text was available for this experiment, so OCR accuracy was not measured.
-
-#### Observed results
+A sample of 50 body-text boxes was tested: 25 retained and 25 rejected examples.
 
 | Measurement | Result |
 |---|---:|
 | Boxes attempted | 50 |
-| Boxes failing after retries | 43 |
-| Failure proportion | 86% |
+| Boxes failed after retries | 43 |
 | Mean time per box | 70.1 seconds |
 | Median time per box | 69.1 seconds |
-| Estimated time for 3,729 BodyText boxes | Approximately 72.6 hours |
+| Estimated time for 3,729 body boxes | Approximately 72.6 hours |
 
-Recorded errors included:
+The test experienced API availability, resource-exhaustion and timeout errors.
 
-| Error | Recorded count |
-|---|---:|
-| 503 UNAVAILABLE | 143 |
-| 429 RESOURCE_EXHAUSTED | 131 |
-| Read timeout | 4 |
-| 504 DEADLINE_EXCEEDED | 2 |
+This was a limited test, not a reliable throughput benchmark. Under the tested conditions, the API was not sufficiently reliable for bulk generation.
 
-These counts represent recorded errors across retries, not unique failed boxes.
+## 3. Dataset Preparation
 
-The estimated processing time is a rough extrapolation under the tested conditions. It is not a guaranteed processing-time benchmark.
+### Dataset v0
 
-**Conclusion:** Under the tested configuration, quota, and timing conditions, API requests were not sufficiently reliable for straightforward bulk OCR generation.
-
-Detailed report: `E1b_gemini_scale/summary.md`
-## 5. Dataset Preparation
-
-### Earlier Dataset Version
-
-An earlier dataset preparation stage produced `dataset_v0`.
+The initial dataset preparation produced:
 
 | Measurement | Result |
 |---|---:|
-| Pages | 100 |
-| Original boxes | 5,748 |
-| Retained lines | 4,422 |
-| Rejected regions | 1,326 |
-| Retention rate | 76.9% |
+| Retained records | 4,422 |
+| Rejected records | 1,326 |
+| Total boxes considered | 5,748 |
 
-The report records the following rejection reasons:
+The dataset report is available at `dataset_v0/report.md`.
 
-- Low Bengali share: 892
-- Placeholder text: 388
-- Image box: 39
-- Short text: 4
-- No text: 3
+### Cycle 1 — Paired Dataset Preparation
 
-The report also notes that the retained BodyText transcriptions were largely based on EasyOCR output and had a mean CER of approximately 0.74 in the E1 comparison.
+Two separate source collections were processed.
 
-This version is preserved as an earlier preparation result. It is not the same as the later Cycle 1 paired dataset.
+| Measurement | Manual-reference collection | Model-assisted collection |
+|---|---:|---:|
+| Pages/tasks | 100 | 100 |
+| Paired records | 2,083 | 5,982 |
+| Rejected records | 1,363 | 4 |
+| Conflicts | 0 | 1 |
+| Image regions excluded | 65 | 53 |
+| Crops generated | 2,083 | 5,982 |
 
-Detailed report: `dataset_v0/report.md`
+**Combined output:**
+- 8,065 image–text pairs.
+- 8,065 image crops.
+- 200 collection-level page/task records.
 
-### Cycle 1 — Paired Dataset Construction
+The 200 records should not be interpreted as 200 unique newspaper pages because uniqueness across the two collections was not established.
 
-The main Cycle 1 pipeline was implemented in:
+### Dataset Record Structure
 
-`src/build_paired_datasets.py`
+Each JSONL record contains:
 
-Its purpose is to extract image crops from annotated newspaper regions and pair them with the corresponding annotation text.
+| Field | Description |
+|---|---|
+| `image` | Path to the corresponding image crop |
+| `text` | Bengali transcription |
+| `page` | Page/task identifier |
+| `region_id` | Annotation region identifier |
+| `label` | Region label |
+| `labels` | Associated labels |
+| `label_conflict` | Indicates a label conflict |
+| `annotation_ids` | Associated annotation identifiers |
+| `bbox` | Original percentage-based bounding box |
+| `text_origin` | Origin of the transcription |
+| `verification_status` | Independent verification status |
 
-Two source collections were processed separately.
+Example JSONL record:
 
-#### Manual-reference collection
+```json
+{
+  "image": "crops/001.png",
+  "text": "আজ দেশের নানা স্থানে বৃষ্টি হইয়াছে।"
+}
+```
+
+### Important Dataset Details
+
+- Image regions were excluded from the paired text dataset.
+- Repeated region IDs were merged within tasks where applicable.
+- Geometry and transcription conflicts were recorded separately.
+- The model-assisted collection contained one label conflict.
+- Original annotation text was retained without new OCR correction.
+- The script converts percentage-based bounding boxes into pixel coordinates for cropping.
+- Crop coordinates are rounded and clamped to image boundaries.
+- Transcriptions are marked `not_independently_verified`.
+
+## 4. Unicode NFC Normalization
+
+Unicode NFC normalization was applied to the transcription field using Python's `unicodedata.normalize("NFC", text)`.
+
+| Collection | Records | Changed by normalization |
+|---|---:|---:|
+| Manual-reference | 2,083 | 1,089 (52.28%) |
+| Model-assisted | 5,982 | 1,348 (22.53%) |
+| Combined | 8,065 | 2,437 (30.22%) |
+
+The normalization process:
+- Preserved the original source data.
+- Created separate normalized outputs.
+- Changed only the text field.
+- Preserved other record fields.
+- Checked NFC normalization and crop-path existence.
+- Refused to overwrite an existing output directory.
+
+Validation results:
+- 8,065 records checked.
+- Zero missing crop files.
+- Zero structural validation errors.
+
+Normalization improves Unicode consistency; it does not correct spelling or transcription errors.
+
+## 5. Quality-Control Audits
+
+### Human Transcription Audit
+
+A sample of 20 records was inspected: 10 from each collection.
+
+| Assessment | Manual-reference | Model-assisted | Combined |
+|---|---:|---:|---:|
+| Correct | 6 | 2 | 8 |
+| Partial | 1 | 1 | 2 |
+| Incorrect | 2 | 6 | 8 |
+| Unreadable/uncertain | 1 | 0 | 1 |
+| Not recorded | 0 | 1 | 1 |
+
+Among assessable records, exact transcription accuracy was:
+
+| Collection | Exact matches |
+|---|---:|
+| Manual-reference | 6/9 (66.7%) |
+| Model-assisted | 2/9 (22.2%) |
+| Combined | 8/18 (44.4%) |
+
+This was a small sample reviewed by one person without adjudication. It is not representative of the entire dataset and does not establish full ground-truth accuracy.
+
+### Prediction-versus-Annotation Audit
+
+The audit compared original prediction regions with final annotation regions across 100 pages.
 
 | Measurement | Result |
 |---|---:|
-| Pages/tasks | 100 |
-| Original images matched | 100 |
-| Retained records | 2,083 |
-| Rejected regions | 1,363 |
-| Conflict records | 0 |
-| Image regions excluded | 65 |
-| Repeated region IDs merged | 0 |
+| Original prediction regions | 6,558 |
+| Final annotation regions | 5,748 |
+| Matching region IDs | 5,745 |
+| Added regions | 3 |
+| Missing regions | 813 |
+| Text differences among matching IDs | 0 |
+| Label differences among matching IDs | 0 |
+| Bounding-box differences among matching IDs | 5 |
 
-Text-origin metadata:
+Among the missing regions, 775 non-image regions had OCR text in the original predictions.
 
-| Text origin | Records |
-|---|---:|
-| `manual` | 288 |
-| `unknown` | 1,795 |
+The audit does not establish why regions were removed or whether the retained transcriptions are correct.
 
-The collection name describes its source. It does not mean that every transcription was independently verified by a human.
-
-#### Model-assisted collection
-
-| Measurement | Result |
-|---|---:|
-| Pages/tasks | 100 |
-| Original images matched | 100 |
-| Retained records | 5,982 |
-| Rejected regions | 4 |
-| Conflict records | 1 |
-| Image regions excluded | 53 |
-| Repeated region IDs merged | 79 |
-
-Text-origin metadata:
-
-| Text origin | Records |
-|---|---:|
-| `prediction` | 5,812 |
-| `prediction-changed` | 170 |
-
-The 79 repeated region IDs were merged within their respective annotation tasks by the preparation script. This should not be interpreted as global duplicate removal across all pages.
-
-#### Combined Cycle 1 results
-
-| Measurement | Combined result |
-|---|---:|
-| Source collection page/task records | 200 |
-| Original images matched across collections | 200 |
-| Retained image–text pairs | 8,065 |
-| Rejected regions | 1,367 |
-| Conflict records | 1 |
-| Image regions excluded | 118 |
-| Repeated region IDs merged | 79 |
-
-The combined count of 200 represents 100 page/task records in each of two source collections. It has not been established that these represent 200 unique newspaper pages across both collections.
-
-#### Output structure
+## 6. Repository Structure
 
 ```text
-data/
-├── raw/
-│   ├── annotations/
-│   │   ├── manual_reference/
-│   │   │   └── teammate_manual.json
-│   │   └── model_assisted/
-│   │       └── your_model_assisted.json
-│   └── images/
-│       └── teammate_original/
-└── processed/
-    ├── manual_reference/
-    │   ├── dataset.jsonl
-    │   ├── rejected.jsonl
-    │   ├── conflicts.jsonl
-    │   ├── report.md
-    │   └── crops/
-    └── model_assisted/
-        ├── dataset.jsonl
-        ├── rejected.jsonl
-        ├── conflicts.jsonl
-        ├── report.md
-        └── crops/
-## 6. Unicode NFC Normalization
+bengali-newspaper-ocr/
+│
+├── README.md
+├── .gitignore
+│
+├── E0_data_summary/
+│   └── summary.md
+│
+├── E1_ocr_engines/
+│   └── summary.md
+│
+├── E1b_gemini_scale/
+│   └── summary.md
+│
+├── dataset_v0/
+│   └── report.md
+│
+├── audit_inspection/
+│   ├── human_transcription_audit_report.md
+│   └── prediction_annotation_audit.md
+│
+├── reports/
+│   └── quality_control/
+│       └── normalization_report.md
+│
+└── src/
+    ├── build_paired_datasets.py
+    └── normalize_nfc.py
+```
 
-Bengali text can contain visually similar strings represented by different Unicode character sequences.
+Generated datasets, original images, crops, intermediate files and other local working data are excluded from the public Git repository.
 
-Unicode normalization helps make equivalent character sequences consistent.
+## 7. Reproducibility
 
-The project uses NFC normalization through Python's `unicodedata` module.
+The main processing scripts are:
 
-Implementation:
+| Script | Purpose |
+|---|---|
+| `src/build_paired_datasets.py` | Builds paired datasets from annotation inputs |
+| `src/normalize_nfc.py` | Creates NFC-normalized dataset outputs |
 
-```python
-unicodedata.normalize("NFC", text)
-## 8. Overall Workflow
+The dataset-building script uses the original annotation and image inputs. It records rejected records and conflicts separately and prevents accidental overwriting of existing output directories.
 
-The project contains several related but distinct research and preparation activities.
+The normalization script preserves non-text fields and produces separate outputs.
 
-```mermaid
-flowchart TD
-    A["Original newspaper images and annotation exports"]
+The original input files and generated datasets are maintained separately from the public repository.
 
-    A --> B["E0: Initial data summary"]
-    A --> C["E1: OCR engine comparison"]
-    A --> D["E1b: Gemini scale feasibility test"]
+## 8. Limitations
 
-    A --> E["Prediction-versus-annotation audit"]
+The following limitations must be considered when interpreting the results:
 
-    A --> F["Cycle 1: Paired dataset construction"]
+1. Transcriptions have not been independently verified across the entire dataset.
+2. The human audit covered only 20 samples.
+3. Google Lens was used as a comparison reference but was not fully verified.
+4. OCR engine agreement does not guarantee transcription correctness.
+5. Gemini API failures limited the feasibility of large-scale processing under the tested conditions.
+6. Unicode normalization does not repair incorrect Bengali text.
+7. Structural validation does not establish image–text semantic accuracy.
+8. The two source collections should not automatically be treated as 200 unique newspaper pages.
+9. No final OCR model has been trained or evaluated in this project cycle.
 
-    F --> G["Manual-reference collection"]
-    F --> H["Model-assisted collection"]
+## 9. Future Work
 
-    G --> I["Image crops + Bengali text pairs"]
-    H --> I
+Potential next steps include:
 
-    I --> J["Structural validation"]
-    J --> K["Unicode NFC normalization"]
-    K --> L["Normalized datasets"]
+- Expand human transcription verification.
+- Correct transcription errors through Bengali-language review.
+- Inspect bounding-box and crop quality.
+- Investigate rejected records and conflicts.
+- Improve reproducibility and dataset documentation.
+- Establish a verified training and evaluation split.
+- Train and evaluate a Bengali OCR model using the prepared data.
 
-    I --> M["Human transcription audit"]
-    E --> N["Annotation quality findings"]
-    B --> N
-    C --> N
-    D --> N
-    M --> N
+## 10. Reports and Documentation
 
-    L --> O["Future OCR training and evaluation"]
-    N --> O
+| Report | Location |
+|---|---|
+| Initial data summary | `E0_data_summary/summary.md` |
+| OCR engine comparison | `E1_ocr_engines/summary.md` |
+| Gemini scale test | `E1b_gemini_scale/summary.md` |
+| Dataset v0 report | `dataset_v0/report.md` |
+| Human transcription audit | `audit_inspection/human_transcription_audit_report.md` |
+| Prediction-annotation audit | `audit_inspection/prediction_annotation_audit.md` |
+| NFC normalization report | `reports/quality_control/normalization_report.md` |
+
+---
+
+## Conclusion
+
+This project has established a documented Bengali historical newspaper OCR data-preparation workflow. It includes initial data inspection, OCR engine comparison, paired dataset construction, Unicode normalization, structural validation and quality-control audits.
+
+The Cycle 1 output contains 8,065 image–text pairs across two source collections. However, independent transcription verification remains necessary before treating the complete dataset as reliable ground truth for OCR training.
+
+**The current achievement is a documented and structurally validated dataset-preparation cycle, not a completed OCR model.**
